@@ -1,7 +1,7 @@
-// From Yelp: https://github.com/Yelp/yelp-api/blob/master/v2/php/lib/OAuth.php
-
 <?php
 // vim: foldmethod=marker
+// From Yelp: https://github.com/Yelp/yelp-api/blob/master/v2/php/lib/OAuth.php
+
 /* Generic exception class
  */
 class OAuthException extends Exception {
