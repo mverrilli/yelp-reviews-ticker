@@ -49,8 +49,7 @@ $yelp_token        = $instance['yelp_token'];
 $yelp_token_secret = $instance['yelp_token_secret'];
 $yelp_consumer_key    = $instance['yelp_consumer_key'];
 $yelp_consumer_secret = $instance['yelp_consumer_secret'];
-$biz_phone = $instance[ 'biz_phone' ];
-$biz_phone = preg_replace( '[\D]', '', $biz_phone ); // clean up phone number
+$biz_id = $instance[ 'biz_id' ];
 
 $iid = $this->id;
 
@@ -64,7 +63,7 @@ $consumer = new OAuthConsumer( $yelp_consumer_key, $yelp_consumer_secret );
 $signature_method = new OAuthSignatureMethod_HMAC_SHA1();
 
 // Call values
-$unsigned_url = 'http://api.yelp.com/v2/phone_search?phone=' . $biz_phone;
+$unsigned_url = 'http://api.yelp.com/v2/business/' . $biz_id;
 
 $oauthrequest = OAuthRequest::from_consumer_and_token(
         $consumer, 
@@ -88,14 +87,10 @@ $api_response = curl_exec($ch);
 curl_close($ch);
 
 // Handle Yelp response data
-$obj = json_decode( $api_response );// Convert JSON from yelp return string
-$arr = (array) $obj;
+$business = json_decode( $api_response );// Convert JSON from yelp return string
+
 // Start diplay code
-// Check is is array
-if ( is_array( $arr[ 'businesses' ] ) ) {
-// Select the business
-	foreach ( $obj->businesses as $business ) {
-		
+
 // Images variables
 $minimaplogo = plugins_url( 'images/miniMapLogo.png' , __FILE__ );
 $ratingimg = plugins_url( 'images/rating.png' , __FILE__ );
@@ -103,7 +98,7 @@ $yelp_logo = plugins_url( 'images/yelp_logo_50x25.png' , __FILE__ );
 // Business variables
 $business_url = $business->url;
 $business_name = $business->name;
-$business_avg_rating = $business->avg_rating;
+$business_avg_rating = $business->rating;
 $business_review_count = $business->review_count;
 if ( $business_review_count == 1 ) {
 	$business_review_count_var = "$business_review_count review";
@@ -158,19 +153,18 @@ $yrt_header = <<<HTML
 	
 HTML;
 echo $yrt_header;
-// foreach review
-foreach( $obj->businesses as $key => $bus ){
+
 // Declare array call for the review
-$review = $bus->reviews;
+$review = $business->reviews;
 //Create loop
 for ( $i = 0; $i<count( $review ); $i++ ) {
 // Review variables
-$ruser_name = $review[$i]->user_name;
-$ruser_photo_url = $review[$i]->user_photo_url;
+$ruser_name = $review[$i]->user->name;
+$ruser_photo_url = $review[$i]->user->image_url;
 $rrating = $review[$i]->rating;
-$rtext_excerpt = $review[$i]->text_excerpt;
+$rtext_excerpt = $review[$i]->excerpt;
 $review_id = $review[$i]->id;
-$rdate = $review[$i]->date;
+$rdate = $review[$i]->time_created;
 // Review CSS conditionals
 if ( $rrating == "0" ) { $review_css = 'yrtstars_0_s'; }
 if ( $rrating == "1" ) { $review_css = 'yrtstars_1_s'; }
@@ -207,8 +201,7 @@ $review_html = <<<HTML
 HTML;
 // Review loop
 echo $review_html;
-	} // End Loop $i
-} // End foreach review
+} // End Loop $i
 // Review HTML HEREDOC
 $review_footer = <<<HTML
 		</ul>
@@ -221,18 +214,11 @@ $review_footer = <<<HTML
 </div>
 HTML;
 echo $review_footer;
-	} // End foreach "Select the business"
-} // End check is is array
+
 // Display error if settings incorrect
-if ( empty( $arr[ 'businesses' ] ) ) { //check if business exists
+if ( empty( $business->id ) ) { //check if business exists
 	$arr_error = array($obj->message->text);
-	//var_dump($obj);
-	if ( is_array( $arr_error ) && $arr_error[0] == 'Invalid API 2.0 Keys' ) { //check for keys
-		echo "<p>The API v2.0 Keys you've entered is not correct.<br />Please check the Yelp Reviews Ticker Widget settings and comfirm the API v2.0 Keys are correct. </p>";
-	}
-	if ( empty( $arr[ 'businesses' ] ) && $arr_error[0] == 'OK' ) { //check for business
-		echo "<br />The Business Phone you've entered is not linked to any Yelp Business Page.<br />Please check the Yelp Reviews Ticker Widget settings and comfirm the Phone number is correct. <br />Or check the Yelp.com Business page for the correct phone number";
-	}
+	var_dump($obj);
 }
 echo $after_widget;
 } // End function widget.
@@ -308,12 +294,12 @@ function form( $instance ) { //<- set default parameters of widget
         $yelp_consumer_secret = "missing"; //default
     }	
 
-	//Business Phone number
-	if ( isset( $instance[ 'biz_phone' ] ) ) {
-			$biz_phone = $instance[ 'biz_phone' ];
+	//Business ID
+	if ( isset( $instance[ 'biz_id' ] ) ) {
+			$biz_id = $instance[ 'biz_id' ];
 		}
 		else {
-			$biz_phone = "missing";
+			$biz_id = "missing";
 		}
 		
 // Settings variables
@@ -341,8 +327,8 @@ $in_yelp_consumer_key    = esc_attr( $this->get_field_name( 'yelp_consumer_key' 
 $ii_yelp_consumer_secret = esc_attr( $this->get_field_id( 'yelp_consumer_secret' ) );
 $in_yelp_consumer_secret = esc_attr( $this->get_field_name( 'yelp_consumer_secret' ) );
 
-$ii_biz_phone = esc_attr( $this->get_field_id( 'biz_phone' ) );
-$in_biz_phone =  esc_attr( $this->get_field_name( 'biz_phone' ) );
+$ii_biz_id = esc_attr( $this->get_field_id( 'biz_id' ) );
+$in_biz_id =  esc_attr( $this->get_field_name( 'biz_id' ) );
 // Conditionals
 if ( $showitems == '1' ) { $showitems1 = "checked"; }
 if ( $showitems == '2' ) { $showitems2 = "checked"; }
@@ -389,14 +375,6 @@ $settings_display = <<<HTML
 			Down <input id="{$ii_direction}" name="{$in_direction}" type="radio" {$direction2} value="down"/>
 		</p>
 		<p>
-			<label for="{$ii_yelp_token}">API v2.0 Token</label><br/>
-			<input id="{$ii_yelp_token}" name="{$in_yelp_token}" type="text" value="{$yelp_token}"/>
-		</p>
-		<p>
-			<label for="{$ii_yelp_token_secret}">API v2.0 Token Secret</label><br/>
-			<input id="{$ii_yelp_token_secret}" name="{$in_yelp_token_secret}" type="text" value="{$yelp_token_secret}"/>
-		</p>
-		<p>
 			<label for="{$ii_yelp_consumer_key}">API v2.0 Consumer Key</label><br/>
 			<input id="{$ii_yelp_consumer_key}" name="{$in_yelp_consumer_key}" type="text" value="{$yelp_consumer_key}"/>
 		</p>
@@ -405,8 +383,16 @@ $settings_display = <<<HTML
 			<input id="{$ii_yelp_consumer_secret}" name="{$in_yelp_consumer_secret}" type="text" value="{$yelp_consumer_secret}"/>
 		</p>
 		<p>
-			<label for="{$ii_biz_phone}">Business Phone Number</label><br />
-			<input id="{$ii_biz_phone}" name="{$in_biz_phone}" type="text" value="{$biz_phone}"/>
+			<label for="{$ii_yelp_token}">API v2.0 Token</label><br/>
+			<input id="{$ii_yelp_token}" name="{$in_yelp_token}" type="text" value="{$yelp_token}"/>
+		</p>
+		<p>
+			<label for="{$ii_yelp_token_secret}">API v2.0 Token Secret</label><br/>
+			<input id="{$ii_yelp_token_secret}" name="{$in_yelp_token_secret}" type="text" value="{$yelp_token_secret}"/>
+		</p>
+		<p>
+			<label for="{$ii_biz_id}">Business ID (From the Yelp URL)</label><br />
+			<input id="{$ii_biz_id}" name="{$in_biz_id}" type="text" value="{$biz_id}"/>
 		</p>
 HTML;
 // Start Settings (display)
@@ -431,7 +417,7 @@ if ( current_user_can( 'manage_options' ) ) {
 	$instance['yelp_token_secret'] = strip_tags( $new_instance[ 'yelp_token_secret' ] );
 	$instance['yelp_consumer_key'] = strip_tags( $new_instance[ 'yelp_consumer_key' ] );
 	$instance['yelp_consumer_secret'] = strip_tags( $new_instance[ 'yelp_consumer_secret' ] );
-	$instance['biz_phone'] = strip_tags( $new_instance[ 'biz_phone' ] );
+	$instance['biz_id'] = strip_tags( $new_instance[ 'biz_id' ] );
 	$instance['title'] = strip_tags( $new_instance[ 'title' ] );
 	return $instance;
 	}
