@@ -3,9 +3,9 @@
 Plugin Name:  Yelp Reviews Ticker
 Plugin URI:   http://wordpress.org/extend/plugins/yelp-reviews-ticker/
 Description:  This reviews ticker allows you to show your business yelp reviews and also customize its display to your taste in a easy manner.
-Version:      2.2
-Author:       Flavio Domeneck Jr, Michael Verrilli
-Author URI:   https://github.com/mverrilli/yelp-reviews-ticker
+Version:      2.1
+Author:       Flavio Domeneck Jr
+Author URI:   https://plus.google.com/107297937804029082934/
 License: GPL2
 Copyright 2013  FDJ  (email : contactflavio@gmail.com )
 	This program is free software; you can redistribute it and/or modify
@@ -79,9 +79,14 @@ $oauthrequest->sign_request($signature_method, $consumer, $token);
 // Get the signed URL
 $signed_url = $oauthrequest->to_url();
 
+
 // Send Yelp API Call
-$api_request = wp_remote_get( $signed_url );
-$api_response = wp_remote_retrieve_body( $api_request );
+$ch = curl_init($signed_url);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+curl_setopt($ch, CURLOPT_HEADER, 0);
+$api_response = curl_exec($ch);
+curl_close($ch);
+
 // Handle Yelp response data
 $obj = json_decode( $api_response );// Convert JSON from yelp return string
 $arr = (array) $obj;
