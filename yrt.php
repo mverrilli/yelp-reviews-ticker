@@ -3,9 +3,9 @@
 Plugin Name:  Yelp Reviews Ticker
 Plugin URI:   http://wordpress.org/extend/plugins/yelp-reviews-ticker/
 Description:  This reviews ticker allows you to show your business yelp reviews and also customize its display to your taste in a easy manner.
-Version:      2.1
-Author:       Flavio Domeneck Jr
-Author URI:   https://plus.google.com/107297937804029082934/
+Version:      2.2
+Author:       Flavio Domeneck Jr, Michael Verrilli
+Author URI:   https://github.com/mverrilli/yelp-reviews-ticker
 License: GPL2
 Copyright 2013  FDJ  (email : contactflavio@gmail.com )
 	This program is free software; you can redistribute it and/or modify
@@ -227,8 +227,8 @@ echo $review_footer;
 if ( empty( $arr[ 'businesses' ] ) ) { //check if business exists
 	$arr_error = array($obj->message->text);
 	//var_dump($obj);
-	if ( is_array( $arr_error ) && $arr_error[0] == 'Invalid YWSID' ) { //check for YWSID key
-		echo "<p>The YWSID (API v1.0 Key) you've entered is not correct.<br />Please check the Yelp Reviews Ticker Widget settings and comfirm the YWSID (API v1.0 Key) is correct. </p>";
+	if ( is_array( $arr_error ) && $arr_error[0] == 'Invalid API 2.0 Keys' ) { //check for keys
+		echo "<p>The API v2.0 Keys you've entered is not correct.<br />Please check the Yelp Reviews Ticker Widget settings and comfirm the API v2.0 Keys are correct. </p>";
 	}
 	if ( empty( $arr[ 'businesses' ] ) && $arr_error[0] == 'OK' ) { //check for business
 		echo "<br />The Business Phone you've entered is not linked to any Yelp Business Page.<br />Please check the Yelp Reviews Ticker Widget settings and comfirm the Phone number is correct. <br />Or check the Yelp.com Business page for the correct phone number";
@@ -280,12 +280,34 @@ function form( $instance ) { //<- set default parameters of widget
         $direction = "up"; //default
     }
 	
-	//ywsid
-	if ( isset( $instance[ 'ywsid' ] ) ) {
-		$ywsid = $instance[ 'ywsid' ];
+	//yelp_token
+	if ( isset( $instance[ 'yelp_token' ] ) ) {
+		$yelp_token = $instance[ 'yelp_token' ];
     } else {
-        $ywsid = "missing"; //default
+        $yelp_token = "missing"; //default
     }	
+
+	//yelp_token_secret
+	if ( isset( $instance[ 'yelp_token_secret' ] ) ) {
+		$yelp_token_secret = $instance[ 'yelp_token_secret' ];
+    } else {
+        $yelp_token_secret = "missing"; //default
+    }	
+
+	//yelp_consumer_key
+	if ( isset( $instance[ 'yelp_consumer_key' ] ) ) {
+		$yelp_consumer_key = $instance[ 'yelp_consumer_key' ];
+    } else {
+        $yelp_consumer_key = "missing"; //default
+    }	
+
+	//yelp_consumer_secret
+	if ( isset( $instance[ 'yelp_consumer_secret' ] ) ) {
+		$yelp_consumer_secret = $instance[ 'yelp_consumer_secret' ];
+    } else {
+        $yelp_consumer_secret = "missing"; //default
+    }	
+
 	//Business Phone number
 	if ( isset( $instance[ 'biz_phone' ] ) ) {
 			$biz_phone = $instance[ 'biz_phone' ];
@@ -309,8 +331,16 @@ $ii_mousepause = esc_attr( $this->get_field_id( 'mousepause' ) );
 $in_mousepause = esc_attr( $this->get_field_name( 'mousepause' ) );
 $ii_direction = esc_attr( $this->get_field_id( 'direction' ) );
 $in_direction = esc_attr( $this->get_field_name( 'direction' ) );
-$ii_ywsid = esc_attr( $this->get_field_id( 'ywsid' ) );
-$in_ywsid = esc_attr( $this->get_field_name( 'ywsid' ) );
+
+$ii_yelp_token        = esc_attr( $this->get_field_id( 'yelp_token' ) );
+$in_yelp_token        = esc_attr( $this->get_field_name( 'yelp_token' ) );
+$ii_yelp_token_secret = esc_attr( $this->get_field_id( 'yelp_token_secret' ) );
+$in_yelp_token_secret = esc_attr( $this->get_field_name( 'yelp_token_secret' ) );
+$ii_yelp_consumer_key    = esc_attr( $this->get_field_id( 'yelp_consumer_key' ) );
+$in_yelp_consumer_key    = esc_attr( $this->get_field_name( 'yelp_consumer_key' ) );
+$ii_yelp_consumer_secret = esc_attr( $this->get_field_id( 'yelp_consumer_secret' ) );
+$in_yelp_consumer_secret = esc_attr( $this->get_field_name( 'yelp_consumer_secret' ) );
+
 $ii_biz_phone = esc_attr( $this->get_field_id( 'biz_phone' ) );
 $in_biz_phone =  esc_attr( $this->get_field_name( 'biz_phone' ) );
 // Conditionals
@@ -359,8 +389,20 @@ $settings_display = <<<HTML
 			Down <input id="{$ii_direction}" name="{$in_direction}" type="radio" {$direction2} value="down"/>
 		</p>
 		<p>
-			<label for="{$ii_ywsid}">API v1.0 Key (YWSID)</label><br/>
-			<input id="{$ii_ywsid}" name="{$in_ywsid}" type="text" value="{$ywsid}"/>
+			<label for="{$ii_yelp_token}">API v2.0 Token</label><br/>
+			<input id="{$ii_yelp_token}" name="{$in_yelp_token}" type="text" value="{$yelp_token}"/>
+		</p>
+		<p>
+			<label for="{$ii_yelp_token_secret}">API v2.0 Token Secret</label><br/>
+			<input id="{$ii_yelp_token_secret}" name="{$in_yelp_token_secret}" type="text" value="{$yelp_token_secret}"/>
+		</p>
+		<p>
+			<label for="{$ii_yelp_consumer_key}">API v2.0 Consumer Key</label><br/>
+			<input id="{$ii_yelp_consumer_key}" name="{$in_yelp_consumer_key}" type="text" value="{$yelp_consumer_key}"/>
+		</p>
+		<p>
+			<label for="{$ii_yelp_consumer_secret}">API v2.0 Consumer Secret</label><br/>
+			<input id="{$ii_yelp_consumer_secret}" name="{$in_yelp_consumer_secret}" type="text" value="{$yelp_consumer_secret}"/>
 		</p>
 		<p>
 			<label for="{$ii_biz_phone}">Business Phone Number</label><br />
@@ -385,7 +427,10 @@ if ( current_user_can( 'manage_options' ) ) {
 	$instance['animation'] = strip_tags( $new_instance[ 'animation' ] );
 	$instance['mousepause'] = strip_tags( $new_instance[ 'mousepause' ] );
 	$instance['direction'] = strip_tags( $new_instance[ 'direction' ] );
-	$instance['ywsid'] = strip_tags( $new_instance[ 'ywsid' ] );
+	$instance['yelp_token'] = strip_tags( $new_instance[ 'yelp_token' ] );
+	$instance['yelp_token_secret'] = strip_tags( $new_instance[ 'yelp_token_secret' ] );
+	$instance['yelp_consumer_key'] = strip_tags( $new_instance[ 'yelp_consumer_key' ] );
+	$instance['yelp_consumer_secret'] = strip_tags( $new_instance[ 'yelp_consumer_secret' ] );
 	$instance['biz_phone'] = strip_tags( $new_instance[ 'biz_phone' ] );
 	$instance['title'] = strip_tags( $new_instance[ 'title' ] );
 	return $instance;
