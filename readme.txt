@@ -1,5 +1,5 @@
 === Yelp Reviews Ticker ===
-Contributors: flaviodj
+Contributors: flaviodj, mverrilli
 Donate link: 
 Tags: yelp, reviews, yelp api, yelp business listings, yelp reviews, yelp widget, yelp widget
 Requires at least: 3.3
@@ -24,11 +24,11 @@ It allows you to easily configure the widget title (if you'd like one), the spee
 2. Activate the plugin through the 'Plugins' menu in WordPress.
 3. Place Yelp Review Ticker Widget in a Widget Area.
 4. Set up the display options according to your likings.
-5. Add your yelp business phone number and the Yelp API v1.0 key (AKA YWSID).
+5. Add your yelp business phone number and the Yelp API v2.0 keys and secrets (token, token_secret, consumer_key, consumer_secret).
 6. Don't forget to rate if weather like or dislike it!.
 
 = Notes: =
-If you don't already have a Yelp API key it is super easy to get it:
+If you don't already have Yelp API access, it is super easy to get it:
 
 1. Sign up for a Yelp user account at http://www.yelp.com/signup if you don't have one yet.
 2. Login, then register for an API key and have instant access.
@@ -38,9 +38,9 @@ http://www.yelp.com/developers/getting_started/api_access .
 
 = Is it easy to setup? =
 
-Yes, super easy, all you need is a Yelp account, sign-up for a Yelp API key (http://www.yelp.com/developers/getting_started/api_access), and have your business listed on Yelp.
+Yes, super easy, all you need is a Yelp account, sign-up for Yelp API access (http://www.yelp.com/developers/getting_started/api_access), and have your business listed on Yelp.
 
-= Where do I find the API Key? =
+= Where do I find the API keys? =
 
 It's easy, login to your yelp account and go to this link http://www.yelp.com/developers/getting_started/api_access there you will "apply" for the Yelp API access and  give you all the keys you need. The whole process takes about 5 minutes.
 
@@ -62,6 +62,9 @@ Again Yelp will allow only exerpts not the full review, but don't worry a link t
 2. The settings page
 
 == Changelog ==
+= 2.2 = 
+* Yelp API 2.0 support as API 1.0 has been deprecated by Yelp
+
 = 2.1 =
 * Major code clean up
 * Major security measures takes
@@ -113,4 +116,4 @@ Again Yelp will allow only exerpts not the full review, but don't worry a link t
 
 == Upgrade notice ==
 
-* This is a major code upgrade, PLEASE CHECK YOUR SETTINGS AFTER YOU UPGRADE, due to YELP's recent changes I had to rewrite most of the code and change API from v2 to v1.
+* This is a major code upgrade, PLEASE CHECK YOUR SETTINGS AFTER YOU UPGRADE, due to Yelp's recent changes I had to change API from v1 back to v2.
