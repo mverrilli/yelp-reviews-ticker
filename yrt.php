@@ -3,28 +3,28 @@
 Plugin Name:  Yelp Reviews Ticker
 Plugin URI:   http://wordpress.org/extend/plugins/yelp-reviews-ticker/
 Description:  This reviews ticker allows you to show your business yelp reviews and also customize its display to your taste in a easy manner.
-Version:      2.1
-Author:       Flavio Domeneck Jr
-Author URI:   https://plus.google.com/107297937804029082934/
+Version:      2.2
+Author:       Flavio Domeneck Jr, Michael Verrilli
+Author URI:   https://github.com/mverrilli/yelp-reviews-ticker
 License: GPL2
-
 Copyright 2013  FDJ  (email : contactflavio@gmail.com )
-
 	This program is free software; you can redistribute it and/or modify
 	it under the terms of the GNU General Public License, version 2, as 
 	published by the Free Software Foundation.
-
 	This program is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 	GNU General Public License for more details.
-
 	You should have received a copy of the GNU General Public License
 	along with this program; if not, write to the Free Software
 	Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
-
 // Create  Widget Class
+
+if ( ! class_exists( 'OAuthToken', false ) ) {
+	require_once( dirname( __FILE__ ) . '/lib/OAuth.php' );
+}
+
 class yrtWidget extends WP_Widget {
 	function yrtWidget() {
 		parent::__construct( 
@@ -33,13 +33,11 @@ class yrtWidget extends WP_Widget {
 			array( 'description' => "Yelp Reviews Ticker shows your yelp reviews cleanly and pain free" ) 
 		);
 	}
-
 // Title
 	function widget( $args, $instance ) {
 		extract( $args );
 		echo $before_widget;
 		echo $before_title.$instance[ 'title' ].$after_title;
-
 // Set instance values
 $speed = $instance[ 'speed' ];
 $pause = $instance[ 'pause' ];
@@ -47,27 +45,49 @@ $showitems = $instance[ 'showitems' ];
 $animation = $instance[ 'animation' ];
 $mousepause = $instance[ 'mousepause' ];
 $direction = $instance[ 'direction' ];
-$iid = $this->id;
-$ywsid = $instance[ 'ywsid' ];
+$yelp_token        = $instance['yelp_token'];
+$yelp_token_secret = $instance['yelp_token_secret'];
+$yelp_consumer_key    = $instance['yelp_consumer_key'];
+$yelp_consumer_secret = $instance['yelp_consumer_secret'];
 $biz_phone = $instance[ 'biz_phone' ];
 $biz_phone = preg_replace( '[\D]', '', $biz_phone ); // clean up phone number
 
+$iid = $this->id;
+
+// Token object built using the OAuth library
+$token = new OAuthToken( $yelp_token, $yelp_token_secret );
+
+// Consumer object built using the OAuth library
+$consumer = new OAuthConsumer( $yelp_consumer_key, $yelp_consumer_secret );
+
+// Yelp uses HMAC SHA1 encoding
+$signature_method = new OAuthSignatureMethod_HMAC_SHA1();
+
 // Call values
-$yelp_url = 'http://api.yelp.com/phone_search?phone=' . $biz_phone . '&ywsid=' . $ywsid;
+$unsigned_url = 'http://api.yelp.com/v2/phone_search?phone=' . $biz_phone;
+
+$oauthrequest = OAuthRequest::from_consumer_and_token(
+        $consumer, 
+        $token, 
+        'GET', 
+        $unsigned_url
+    );
+
+// Sign the request
+$oauthrequest->sign_request($signature_method, $consumer, $token);
+
+// Get the signed URL
+$signed_url = $oauthrequest->to_url();
 
 // Send Yelp API Call
-$api_request = wp_remote_get( $yelp_url );
+$api_request = wp_remote_get( $signed_url );
 $api_response = wp_remote_retrieve_body( $api_request );
-
 // Handle Yelp response data
 $obj = json_decode( $api_response );// Convert JSON from yelp return string
 $arr = (array) $obj;
-
-
 // Start diplay code
 // Check is is array
 if ( is_array( $arr[ 'businesses' ] ) ) {
-
 // Select the business
 	foreach ( $obj->businesses as $business ) {
 		
@@ -75,7 +95,6 @@ if ( is_array( $arr[ 'businesses' ] ) ) {
 $minimaplogo = plugins_url( 'images/miniMapLogo.png' , __FILE__ );
 $ratingimg = plugins_url( 'images/rating.png' , __FILE__ );
 $yelp_logo = plugins_url( 'images/yelp_logo_50x25.png' , __FILE__ );
-
 // Business variables
 $business_url = $business->url;
 $business_name = $business->name;
@@ -93,7 +112,6 @@ if ( ( $business_review_count == 2 ) && ( $showitems > 2 ) ) {
 if ( ( $business_review_count == 1 ) && ( $showitems > 1 ) ) {
 	$showitems = "1";
 	}
-
 // CSS Function
 if ( $business_avg_rating == "0" ) { $business_avg_rating_css = 'yrtstars_0_l'; }
 if ( $business_avg_rating == "1" ) { $business_avg_rating_css = 'yrtstars_1_l'; }
@@ -105,7 +123,6 @@ if ( $business_avg_rating == "3.5" ) { $business_avg_rating_css = 'yrtstars_3h_l
 if ( $business_avg_rating == "4" ) { $business_avg_rating_css = 'yrtstars_4_l'; }
 if ( $business_avg_rating == "4.5" ) { $business_avg_rating_css = 'yrtstars_4h_l'; }
 if ( $business_avg_rating == "5" ) { $business_avg_rating_css = 'yrtstars_5_l'; }
-
 // Business Header HTML HEREDOC
 $yrt_header = <<<HTML
 <div>
@@ -130,24 +147,18 @@ $yrt_header = <<<HTML
 	});
 </script>
 <!-- End Yelp Reviews Ticker jQuery -->
-
 <div id="yrtcssmarkup">
 	<div id="ticker_{$iid}">
 		<ul>
 	
 HTML;
-
 echo $yrt_header;
-
 // foreach review
 foreach( $obj->businesses as $key => $bus ){
-
 // Declare array call for the review
 $review = $bus->reviews;
-
 //Create loop
 for ( $i = 0; $i<count( $review ); $i++ ) {
-
 // Review variables
 $ruser_name = $review[$i]->user_name;
 $ruser_photo_url = $review[$i]->user_photo_url;
@@ -155,7 +166,6 @@ $rrating = $review[$i]->rating;
 $rtext_excerpt = $review[$i]->text_excerpt;
 $review_id = $review[$i]->id;
 $rdate = $review[$i]->date;
-
 // Review CSS conditionals
 if ( $rrating == "0" ) { $review_css = 'yrtstars_0_s'; }
 if ( $rrating == "1" ) { $review_css = 'yrtstars_1_s'; }
@@ -167,7 +177,6 @@ if ( $$rrating == "3.5" ) { $review_css = 'yrtstars_3h_s'; }
 if ( $rrating == "4" ) { $review_css = 'yrtstars_4_s'; }
 if ( $rrating == "4.5" ) { $review_css = 'yrtstars_4h_s'; }
 if ( $rrating == "5" ) { $review_css = 'yrtstars_5_s'; }
-
 // Review HTML HEREDOC
 $review_html = <<<HTML
 			<li>
@@ -195,7 +204,6 @@ HTML;
 echo $review_html;
 	} // End Loop $i
 } // End foreach review
-
 // Review HTML HEREDOC
 $review_footer = <<<HTML
 		</ul>
@@ -208,12 +216,9 @@ $review_footer = <<<HTML
 </div>
 HTML;
 echo $review_footer;
-
 	} // End foreach "Select the business"
 } // End check is is array
-
 // Display error if settings incorrect
-
 if ( empty( $arr[ 'businesses' ] ) ) { //check if business exists
 	$arr_error = array($obj->message->text);
 	//var_dump($obj);
@@ -224,13 +229,9 @@ if ( empty( $arr[ 'businesses' ] ) ) { //check if business exists
 		echo "<br />The Business Phone you've entered is not linked to any Yelp Business Page.<br />Please check the Yelp Reviews Ticker Widget settings and comfirm the Phone number is correct. <br />Or check the Yelp.com Business page for the correct phone number";
 	}
 }
-
 echo $after_widget;
-
 } // End function widget.
-
 function form( $instance ) { //<- set default parameters of widget
-
 	//title
 	if ( isset( $instance[ 'title' ] ) ) {
 		$title = $instance[ 'title' ];
@@ -278,9 +279,8 @@ function form( $instance ) { //<- set default parameters of widget
 	if ( isset( $instance[ 'ywsid' ] ) ) {
 		$ywsid = $instance[ 'ywsid' ];
     } else {
-        $ywsid = "mising"; //default
+        $ywsid = "missing"; //default
     }	
-
 	//Business Phone number
 	if ( isset( $instance[ 'biz_phone' ] ) ) {
 			$biz_phone = $instance[ 'biz_phone' ];
@@ -290,7 +290,6 @@ function form( $instance ) { //<- set default parameters of widget
 		}
 		
 // Settings variables
-
 $ii_title = esc_attr( $this->get_field_id( 'title' ) );
 $in_title = esc_attr( $this->get_field_name( 'title' ) );
 $ii_speed = esc_attr( $this->get_field_id( 'speed' ) );
@@ -309,7 +308,6 @@ $ii_ywsid = esc_attr( $this->get_field_id( 'ywsid' ) );
 $in_ywsid = esc_attr( $this->get_field_name( 'ywsid' ) );
 $ii_biz_phone = esc_attr( $this->get_field_id( 'biz_phone' ) );
 $in_biz_phone =  esc_attr( $this->get_field_name( 'biz_phone' ) );
-
 // Conditionals
 if ( $showitems == '1' ) { $showitems1 = "checked"; }
 if ( $showitems == '2' ) { $showitems2 = "checked"; }
@@ -320,7 +318,6 @@ if ( $mousepause == 'true' ) { $mousepause1 = "checked"; }
 if ( $mousepause == 'false' ) { $mousepause2 = "checked"; }
 if ( $direction == 'up' ) { $direction1 = "checked"; }
 if ( $direction == 'down' ) { $direction2 = "checked"; }
-
 // Settings HTML HEREDOC
 $settings_display = <<<HTML
 		<p>
@@ -365,16 +362,13 @@ $settings_display = <<<HTML
 			<input id="{$ii_biz_phone}" name="{$in_biz_phone}" type="text" value="{$biz_phone}"/>
 		</p>
 HTML;
-
 // Start Settings (display)
 if ( current_user_can( 'manage_options' ) ) {
     echo $settings_display;
 } else {
     echo "You don't have enough privileges to make changes here";
 }
-
 	} // end function form
-
 // Updates the settings.
 	function update( $new_instance, $old_instance ) {
 	$instance = $old_instance;
@@ -389,18 +383,13 @@ if ( current_user_can( 'manage_options' ) ) {
 	$instance['ywsid'] = strip_tags( $new_instance[ 'ywsid' ] );
 	$instance['biz_phone'] = strip_tags( $new_instance[ 'biz_phone' ] );
 	$instance['title'] = strip_tags( $new_instance[ 'title' ] );
-
 	return $instance;
 	}
-
 } // end class
-
 // Register the widget.
 function yrtw_register() {
 	register_widget( 'yrtWidget' );
 }
-
-
 // Add scripts & styling
 function yrt_scripts() {
 	wp_enqueue_script(
@@ -423,7 +412,6 @@ function yrt_scripts() {
 }    
 // Load scripts & styling
 add_action( 'wp_enqueue_scripts', 'yrt_scripts' );
-
 // Register widget
 add_action( 'widgets_init', 'yrtw_register' );
 ?>
